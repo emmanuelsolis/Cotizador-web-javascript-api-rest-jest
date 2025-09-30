@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "coverage": "jest --coverage --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -14,11 +15,15 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "mysql2": "^3.15.1"
+    "mysql2": "^3.15.1",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }
