@@ -6,7 +6,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest --runInBand",
-    "coverage": "jest --coverage --runInBand"
+    "coverage": "jest --coverage --runInBand",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",
@@ -19,11 +21,18 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.37.0",
+    "eslint": "^9.37.0",
+    "eslint-plugin-jest": "^29.0.1",
+    "globals": "^16.4.0",
     "jest": "^29.7.0",
+    "neostandard": "^0.12.2",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4"
   },
   "jest": {
     "testEnvironment": "node"
-  }
+  },
+  "editor.codeActionsOnSave": { "source.fixAll.eslint": "always" }
+
 }
