@@ -20,14 +20,16 @@ let readyResolve;
 const ready = new Promise((r) => { readyResolve = r; });
 (async () => {
   db = await initDb();
+  // Store db in app for testing purposes
+  app.db = db;
   // Mount clients router lazily (defensive: avoid crashing tests if the module shape differs)
   try {
     const clientsModule = require('./routes/clients');
     let clientsRouter = null;
     if (typeof clientsModule === 'function') {
-      clientsRouter = clientsModule(db);
+      clientsRouter = clientsModule(app);
     } else if (clientsModule && typeof clientsModule.default === 'function') {
-      clientsRouter = clientsModule.default(db);
+      clientsRouter = clientsModule.default(app);
     }
     if (clientsRouter) app.use('/api/clients', clientsRouter);
     else console.warn('clients router module loaded but did not export a function');

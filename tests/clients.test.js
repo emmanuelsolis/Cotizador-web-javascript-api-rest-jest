@@ -2,10 +2,12 @@ const request = require('supertest');
 
 describe('Clients API (sqlite memory)', () => {
   let server;
+  let app;
   beforeAll((done) => {
     process.env.DB_PATH = ':memory:';
     // require app after setting env to ensure initDb uses in-memory DB
     const mod = require('../src/index');
+    app = mod.app;
     // wait for DB ready
     mod.ready.then(() => {
       server = mod.app.listen(0, () => done());
@@ -46,11 +48,11 @@ describe('Clients API (sqlite memory)', () => {
 
   test('simulate database error on create', async () => {
     // Temporarily override app's db to simulate error
-    const originalDb = server.db;
-    server.db = null;
+    const originalDb = app.db;
+    app.db = null;
     const client = { name: 'ACME', contact_info: 'acme@example.com' };
     const res = await request(server).post('/api/clients').send(client);
     expect(res.status).toBeGreaterThanOrEqual(500);
-    server.db = originalDb;
+    app.db = originalDb;
   });
 });
