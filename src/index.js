@@ -1,64 +1,52 @@
-const express = require('express')
-const cors = require('cors')
-const { v4: uuidv4 } = require('uuid')
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const { initDb } = require('./db');
 
-const app = express()
-app.use(cors())
-app.use(express.json())
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-const clients = []
+// Health
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-// Obtener todos los clientes
-app.get('/clients', (req, res) => {
-  // puede añadirse paginación/filtrado aquí
-  res.json(clients)
-})
+// Mount legacy in-memory clients endpoints for backwards compatibility
+const legacyClients = require('./routes/legacyClients');
+app.use('/clients', legacyClients);
 
-// Crear un cliente
-app.post('/clients', (req, res) => {
-  const { name, email } = req.body
-  if (!name || !email) {
-    return res.status(400).json({ error: 'name and email are required' })
+// Init DB and mount routers
+let db;
+let readyResolve;
+const ready = new Promise((r) => { readyResolve = r; });
+(async () => {
+  db = await initDb();
+  // Mount clients router lazily (defensive: avoid crashing tests if the module shape differs)
+  try {
+    const clientsModule = require('./routes/clients');
+    let clientsRouter = null;
+    if (typeof clientsModule === 'function') {
+      clientsRouter = clientsModule(db);
+    } else if (clientsModule && typeof clientsModule.default === 'function') {
+      clientsRouter = clientsModule.default(db);
+    }
+    if (clientsRouter) app.use('/api/clients', clientsRouter);
+    else console.warn('clients router module loaded but did not export a function');
+  } catch (e) {
+    console.error('Failed to mount /api/clients router:', e);
   }
-  const client = { id: uuidv4(), name, email, createdAt: new Date().toISOString() }
-  clients.push(client)
-  res.status(201).json(client)
-})
+  console.log('DB initialized and routers mounted');
+  if (typeof readyResolve === 'function') readyResolve();
+})().catch((e) => {
+  console.error('DB init error:', e);
+  if (process.env.NODE_ENV !== 'test') process.exit(1);
+});
 
-// Obtener cliente por id
-app.get('/clients/:id', (req, res) => {
-  const { id } = req.params
-  const normalizedId = Number.isNaN(Number(id)) ? id : Number(id)
-  const client = clients.find(c => c.id === normalizedId)
-  if (!client) return res.status(404).json({ error: 'client not found' })
-  const { password, ...safeClient } = client // remove sensitive fields
-  res.json(safeClient)
-})
+const PORT = process.env.PORT || 3000;
+let server = null;
+// Only start the server if this file is run directly (not imported by tests)
+if (require.main === module) {
+  server = app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+}
 
-// Actualizar cliente por id
-app.put('/clients/:id', (req, res) => {
-  const { id } = req.params
-  const { name, email } = req.body
-  const idx = clients.findIndex(c => c.id === id)
-  if (idx === -1) return res.status(404).json({ error: 'client not found' })
-  if (!name && !email) return res.status(400).json({ error: 'nothing to update' })
+module.exports = { app, ready, server };
 
-  if (name) clients[idx].name = name
-  if (email) clients[idx].email = email
-  clients[idx].updatedAt = new Date().toISOString()
-
-  res.json(clients[idx])
-})
-
-// Eliminar cliente por id
-app.delete('/clients/:id', (req, res) => {
-  const { id } = req.params
-  const idx = clients.findIndex(c => c.id === id)
-  if (idx === -1) return res.status(404).json({ error: 'client not found' })
-  const removed = clients.splice(idx, 1)[0]
-  res.json(removed)
-})
-
-app.listen(3000, () => {
-  console.log('Server is running on port 3000')
-})
