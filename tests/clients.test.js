@@ -1,12 +1,15 @@
 const request = require('supertest');
-const { app } = require('../src/index');
 
 describe('Clients API (sqlite memory)', () => {
   let server;
   beforeAll((done) => {
     process.env.DB_PATH = ':memory:';
-    // require app already initializes DB on import; give it a moment
-    server = app.listen(0, () => done());
+    // require app after setting env to ensure initDb uses in-memory DB
+    const mod = require('../src/index');
+    // wait for DB ready
+    mod.ready.then(() => {
+      server = mod.app.listen(0, () => done());
+    }).catch(done);
   });
 
   afterAll((done) => {
