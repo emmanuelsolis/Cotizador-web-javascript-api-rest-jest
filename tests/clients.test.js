@@ -24,4 +24,33 @@ describe('Clients API (sqlite memory)', () => {
     const getRes = await request(server).get(`/api/clients/${id}`).expect(200);
     expect(getRes.body.name).toBe(client.name);
   });
+
+  test('fail to create client with missing name', async () => {
+    const client = { contact_info: 'acme@example.com' };
+    const res = await request(server).post('/api/clients').send(client);
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  test('fail to fetch client with invalid id', async () => {
+    const res = await request(server).get('/api/clients/invalid-id');
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  test('fail to fetch non-existent client', async () => {
+    const res = await request(server).get('/api/clients/999999');
+    expect(res.status).toBe(404);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  test('simulate database error on create', async () => {
+    // Temporarily override app's db to simulate error
+    const originalDb = server.db;
+    server.db = null;
+    const client = { name: 'ACME', contact_info: 'acme@example.com' };
+    const res = await request(server).post('/api/clients').send(client);
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    server.db = originalDb;
+  });
 });

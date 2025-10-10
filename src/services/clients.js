@@ -29,8 +29,9 @@ async function getClient(db, id) {
 async function createClient(db, { name, contact_info }) {
   // support legacy `email` field
   const contact = contact_info || (arguments[1] && arguments[1].email) || null;
-  await run(db, 'INSERT INTO clients (name, contact_info) VALUES (?, ?);', [name, contact]);
-  const r = await get(db, 'SELECT * FROM clients ORDER BY client_id DESC LIMIT 1');
+  const result = await run(db, 'INSERT INTO clients (name, contact_info) VALUES (?, ?);', [name, contact]);
+  const lastId = result.lastID || (await get(db, 'SELECT last_insert_rowid() AS id')).id;
+  const r = await get(db, 'SELECT * FROM clients WHERE client_id = ?', [lastId]);
   return {
     client_id: r.client_id,
     id: r.client_id,
